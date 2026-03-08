@@ -26,8 +26,8 @@ from telegram.ext import (
 # ══════════════════════════════════════════════
 #  НАСТРОЙКИ  ← ЗАПОЛНИ ЭТИ ДВЕ СТРОКИ
 # ══════════════════════════════════════════════
-BOT_TOKEN      = "ВСТАВЬ_СЮДА_ТОКЕН_БОТА"
-BOT_USERNAME   = "ВСТАВЬ_ИМЯ_БОТА_БЕЗ_СОБАКИ"   # например: VoteArtomBot
+BOT_TOKEN      = os.environ.get("BOT_TOKEN", "")
+BOT_USERNAME   = os.environ.get("BOT_USERNAME", "")  # например: VoteArtomBot
 ADMIN_USERNAME = "Lilux12"                         # без @
 DATA_FILE      = "votes_data.json"
 
