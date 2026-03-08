@@ -1,0 +1,5 @@
+[phases.install]
+cmds = ["pip install python-telegram-bot[job-queue]==21.6"]
+
+[start]
+cmd = "python birthday_bot.py"
