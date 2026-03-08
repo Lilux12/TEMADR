@@ -26,8 +26,8 @@ from telegram.ext import (
 # ══════════════════════════════════════════════
 #  НАСТРОЙКИ  ← ЗАПОЛНИ ЭТИ ДВЕ СТРОКИ
 # ══════════════════════════════════════════════
-BOT_TOKEN      = os.environ.get("BOT_TOKEN", "")
-BOT_USERNAME   = os.environ.get("BOT_USERNAME", "")
+BOT_TOKEN      = "ВСТАВЬ_СЮДА_ТОКЕН_БОТА"
+BOT_USERNAME   = "ВСТАВЬ_ИМЯ_БОТА_БЕЗ_СОБАКИ"   # например: VoteArtomBot
 ADMIN_USERNAME = "Lilux12"                         # без @
 DATA_FILE      = "votes_data.json"
 
@@ -41,7 +41,7 @@ RESULT_DATE = date(2026, 4, 1)
 
 # ── Стартовые варианты ──
 INITIAL_OPTIONS = [
-    {"id": "quest",    "name": "👻 Квест «Тихий холм» (с актёрами)", "url": "https://quest5.ru/silent-hill"},
+    {"id": "quest",    "name": "👻 Квест очень страшный (с актёрами)", "url": "https://quest5.ru/silent-hill"},
     {"id": "pakabata", "name": "🎮 Пакабата",                        "url": "https://pakabata-nn.ru/"},
     {"id": "karting",  "name": "🏎️ Картинг",                        "url": "https://zharptitsann.ru/karting"},
     {"id": "galileo",  "name": "🎡 Парк чудес Галилео",              "url": "https://nn.galileopark.ru/"},
@@ -127,7 +127,7 @@ def round_status_text(round_num: int) -> str:
     return "🎉 Голосование завершено!"
 
 
-def build_vote_keyboard(data: dict, user_voted_id: str = None) -> InlineKeyboardMarkup:
+def build_vote_keyboard(data: dict, user_voted_id: str = None, admin: bool = False) -> InlineKeyboardMarkup:
     buttons = []
     for oid in data["active_options"]:
         opt = data["options"].get(oid)
@@ -139,10 +139,12 @@ def build_vote_keyboard(data: dict, user_voted_id: str = None) -> InlineKeyboard
             row.append(InlineKeyboardButton("🔗", url=opt["url"]))
         buttons.append(row)
     buttons.append([InlineKeyboardButton("✏️ Предложить свой вариант", callback_data="suggest_custom")])
+    if admin:
+        buttons.append([InlineKeyboardButton("🔐 Админ-панель", callback_data="admin_back")])
     return InlineKeyboardMarkup(buttons)
 
 
-def build_vote_keyboard_with_counts(data: dict, round_num: int, user_voted_id: str = None) -> InlineKeyboardMarkup:
+def build_vote_keyboard_with_counts(data: dict, round_num: int, user_voted_id: str = None, admin: bool = False) -> InlineKeyboardMarkup:
     counts = get_vote_counts(data, round_num)
     total = sum(counts.values()) or 1
     buttons = []
@@ -160,6 +162,8 @@ def build_vote_keyboard_with_counts(data: dict, round_num: int, user_voted_id: s
             row.append(InlineKeyboardButton("🔗", url=opt["url"]))
         buttons.append(row)
     buttons.append([InlineKeyboardButton("✏️ Предложить свой вариант", callback_data="suggest_custom")])
+    if admin:
+        buttons.append([InlineKeyboardButton("🔐 Админ-панель", callback_data="admin_back")])
     return InlineKeyboardMarkup(buttons)
 
 
@@ -193,10 +197,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except Exception:
                     pass
 
-    if is_admin(update):
-        await show_admin_menu(update, context)
-        return
-
+    admin = is_admin(update)
     round_num = get_current_round()
     user_voted = get_user_vote(data, user_id, round_num) if round_num in (1, 2, 3) else None
 
@@ -211,13 +212,14 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if user_voted:
             opt_name = data["options"].get(user_voted, {}).get("name", "?")
             text += f"\n👆 Твой голос: <b>{opt_name}</b>\nМожно изменить 👇"
-            keyboard = build_vote_keyboard_with_counts(data, round_num, user_voted)
+            keyboard = build_vote_keyboard_with_counts(data, round_num, user_voted, admin)
         else:
             text += "\n👇 Выбери вариант:"
-            keyboard = build_vote_keyboard(data, user_voted)
+            keyboard = build_vote_keyboard(data, user_voted, admin)
         await update.message.reply_text(text, parse_mode="HTML", reply_markup=keyboard)
     else:
-        await update.message.reply_text(text, parse_mode="HTML")
+        extra = InlineKeyboardMarkup([[InlineKeyboardButton("🔐 Админ-панель", callback_data="admin_back")]]) if admin else None
+        await update.message.reply_text(text, parse_mode="HTML", reply_markup=extra)
 
 
 async def cmd_vote(update: Update, context: ContextTypes.DEFAULT_TYPE):
